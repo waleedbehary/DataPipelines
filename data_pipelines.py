@@ -10,8 +10,7 @@ from helpers import SqlQueries
  #AWS_SECRET = os.environ.get('AWS_SECRET')
 
 default_args = {
-    'owner': 'udacity',
-    'start_date': datetime(2019, 1, 12),
+    'owner': 'Walid',
     # The DAG does not have dependencies on past runs
     'depends_on_past': False,
     # On failure, the task are retried 3 times
@@ -26,8 +25,7 @@ default_args = {
 
 dag = DAG('data_pipelines',
           default_args=default_args,
-          description='Load and transform data in Redshift with Airflow',
-          schedule_interval='0 * * * *'
+          start_date = datetime.now()
         )
 
 start_operator = DummyOperator(task_id='Begin_execution',  dag=dag)
@@ -50,7 +48,9 @@ stage_songs_to_redshift = StageToRedshiftOperator(
     conn_id="redshift",
     aws_credentials_id="aws_credentials",
     s3_bucket="udacity-dend",
-    s3_key="song_data"
+    s3_key="song_data",
+    s3_path = "s3://udacity-dend/song_data",
+    json_path="auto"
 )
 
 load_songplays_table = LoadFactOperator(
@@ -82,7 +82,7 @@ load_song_dimension_table = LoadDimensionOperator(
 load_artist_dimension_table = LoadDimensionOperator(
     task_id='Load_artist_dim_table',
     dag=dag,
-    onn_id="redshift",
+    conn_id="redshift",
     table="artists",
     query=SqlQueries.artist_table_insert,
     truncate=True
@@ -99,7 +99,8 @@ load_time_dimension_table = LoadDimensionOperator(
 
 run_quality_checks = DataQualityOperator(
     task_id='Run_data_quality_checks',
-    dag=dag
+    dag=dag,
+    conn_id="redshift"
 )
 
 end_operator = DummyOperator(task_id='End_execution',  dag=dag)
